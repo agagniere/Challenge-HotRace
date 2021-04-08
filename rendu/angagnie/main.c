@@ -19,9 +19,9 @@ typedef struct string
 typedef struct hm_node
 {
     struct hm_node* next;
-    t_string key;
-    t_string value;
-    size_t   hash;
+    char*  key;
+    char*  value;
+    unsigned hash;
 } t_hm_node;
 
 # define EMPTY_NODE (void*)(0xDEADBEEF)
@@ -30,7 +30,6 @@ typedef struct hashmap
 {
     t_hm_node* data;
     size_t capacity;
-    size_t size;
 } t_hashmap;
 
 size_t fnv1a_32(t_string key)
@@ -71,15 +70,15 @@ bool hashmap_remove(t_hashmap* map, const t_string* key)
     if (ptr->next == EMPTY_NODE)
         return false;
     while (ptr != NULL
-           && (ptr->hash != hash || strncmp(key->string, ptr->key.string, key->length) != 0))
+           && (ptr->hash != hash || strncmp(key->string, ptr->key, key->length) != 0))
     {
         prev = ptr;
         ptr = ptr->next;
     }
     if (ptr == NULL)
         return false;
-    free(ptr->key.string);
-    free(ptr->value.string);
+    free(ptr->key);
+    free(ptr->value);
     if (prev == NULL)
         ptr->next = EMPTY_NODE;
     else
@@ -97,7 +96,7 @@ bool hashmap_add(t_hashmap* map, const t_string* key, const t_string* value)
     if (dest->next != EMPTY_NODE)
     {
         while (dest != NULL
-               && (dest->hash != hash || strncmp(key->string, dest->key.string, key->length) != 0))
+               && (dest->hash != hash || strncmp(key->string, dest->key, key->length) != 0))
         {
             prev = dest;
             dest = dest->next;
@@ -109,12 +108,10 @@ bool hashmap_add(t_hashmap* map, const t_string* key, const t_string* value)
     }
     dest->next = NULL;
     dest->hash = hash;
-    dest->key.string = ft_memdup(key->string, key->length + 1);
-    dest->key.string[key->length] = '\0';
-    dest->key.length = key->length;
-    dest->value.string = ft_memdup(value->string, value->length + 1);
-    dest->value.string[value->length] = '\0';
-    dest->value.length = value->length;
+    dest->key = ft_memdup(key->string, key->length + 1);
+    dest->key[key->length] = '\0';
+    dest->value = ft_memdup(value->string, value->length + 1);
+    dest->value[value->length] = '\0';
     return true;
 }
 
@@ -126,11 +123,12 @@ bool hashmap_get(const t_hashmap* map, const t_string* key, t_string* out_result
     if (ptr->next == EMPTY_NODE)
         return false;
     while (ptr != NULL
-           && (ptr->hash != hash || strncmp(key->string, ptr->key.string, key->length) != 0))
+           && (ptr->hash != hash || strncmp(key->string, ptr->key, key->length) != 0))
         ptr = ptr->next;
     if (ptr == NULL)
         return false;
-    *out_result = ptr->value;
+    out_result->string = ptr->value;
+    out_result->length = strlen(ptr->value);
     return true;
 }
 
@@ -146,7 +144,6 @@ int main(void)
     if (!(map.data = calloc(HASHMAP_CAPACITY, sizeof(t_hm_node))))
         return 1;
     map.capacity = HASHMAP_CAPACITY;
-    map.size = 0;
     for (unsigned i = 0; i < map.capacity; i++)
         map.data[i].next = EMPTY_NODE;
 
